@@ -34,27 +34,33 @@ The entire nested datacenter is hosted on a high-spec physical dedicated server:
 
 The lab is split into multiple isolated subnets interconnected and secured through a virtual **Sophos Firewall** operating as the core gateway and router.
 
-`
-                              [ Physical Network / Internet ]
-                                             ▲
-                                             │ (NAT / WAN Interface)
-                                  ┌──────────────────────┐
-                                  │   Sophos Firewall    │ (Host: 11.0.0.8)
-                                  │  Routing, NAT & Sec  │
-                                  └──────────┬───────────┘
-                         NIC 2 (LAN 1)       │       NIC 3 (LAN 2)
-                     ┌───────────────────────┴───────────────────────┐
-                     ▼                                               ▼
-         [ Subnet 11.0.0.0/24 ]                             [ Subnet 12.0.0.0/24 ]
-     ├── ESXi Host 1 (11.0.0.3)                         └── ESXi Host 4 (12.0.0.12)
-     │   ├── VMware vCenter Server (VCSA)
-     │   └── Domain Controller (Win Server 2019)
-     ├── ESXi Host 2 (11.0.0.5)
-     │   ├── Veeam Backup & Replication
-     │   └── Windows 10 Client
-     └── ESXi Host 3 (11.0.0.8)
-         └── Sophos Firewall Appliance
-`
+```mermaid
+flowchart TD
+    WAN["🌐 Physical Network / Internet<br><b>Physical Host: 10.100.14.17</b>"]
+
+    subgraph Sophos["Sophos XG Firewall VM (on Host 11.0.0.8)"]
+        direction TB
+        FW["<b>Core Router & Firewall</b><br>• Stateful Packet Inspection<br>• Inter-Subnet Routing<br>• Outbound NAT"]
+    end
+
+    WAN <-->|"NIC 1: WAN (NAT)"| FW
+
+    subgraph Subnet11["📌 Subnet 11.0.0.0/24 (Gateway: 11.0.0.1)"]
+        direction TB
+        H1["<b>ESXi Host 1 (11.0.0.3)</b><br>• VMware vCenter Server (VCSA)<br>• Windows Server 2019 DC (AD DS, DNS, DHCP)"]
+        H2["<b>ESXi Host 2 (11.0.0.5)</b><br>• Veeam Backup & Replication<br>• Windows 10 Enterprise Client"]
+        H3["<b>ESXi Host 3 (11.0.0.8)</b><br>• Hosts Sophos Firewall VM"]
+    end
+
+    subgraph Subnet12["📌 Subnet 12.0.0.0/24 (Gateway: 12.0.0.1)"]
+        direction TB
+        H4["<b>ESXi Host 4 (12.0.0.12)</b><br>• Secondary Routed ESXi Host"]
+    end
+
+    FW <-->|"NIC 2: LAN 1 (11.0.0.0/24)"| Subnet11
+    FW <-->|"NIC 3: LAN 2 (12.0.0.0/24)"| Subnet12
+```
+
 
 ### Subnet Allocation & Gateways
 
