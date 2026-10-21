@@ -24,10 +24,10 @@ This project demonstrates the design, deployment, configuration, and administrat
 
 | Zone / VLAN | Subnet | Description | Gateway |
 | :--- | :--- | :--- | :--- |
-| **Management** | `192.168.1.0/24` | ESXi hosts, vCenter Server Appliance (VCSA) | `192.168.1.1` |
-| **Corporate / LAN** | `10.10.10.0/24` | Domain Controllers, Member Servers, Workstations | `10.10.10.1` |
-| **Storage / vMotion** | `10.10.20.0/24` | VM migration & storage traffic | `10.10.20.1` |
-| **DMZ / Perimeter** | `172.16.1.0/24` | Public-facing services & reverse proxies | `172.16.1.1` |
+| **Management** | 192.168.1.0/24 | ESXi hosts, vCenter Server Appliance (VCSA) | 192.168.1.1 |
+| **Corporate / LAN** | 10.10.10.0/24 | Domain Controllers, Member Servers, Workstations | 10.10.10.1 |
+| **Storage / vMotion** | 10.10.20.0/24 | VM migration & storage traffic | 10.10.20.1 |
+| **DMZ / Perimeter** | 172.16.1.0/24 | Public-facing services & reverse proxies | 172.16.1.1 |
 
 ---
 
