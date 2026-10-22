@@ -34,7 +34,27 @@ The entire nested datacenter is hosted on a high-spec physical dedicated server:
 
 The lab is split into multiple isolated subnets interconnected and secured through a virtual **Sophos Firewall** operating as the core gateway and router.
 
-![Network Topology Architecture](Images/network_topology.png)
+```text
+[ Physical Network / Internet ] (Host: 10.100.14.17)
+  │
+  ▼ (NIC 1: WAN / NAT)
+[ Sophos XG Firewall VM ] (Host: 11.0.0.8)
+  │  Core Router • Inter-Subnet Routing • Outbound NAT
+  │
+  ├──► (NIC 2: LAN 1) ── [ Subnet 11.0.0.0/24 ] (GW: 11.0.0.1)
+  │     ├── ESXi Host 1 (11.0.0.3)
+  │     │     ├── VMware vCenter Server (VCSA)
+  │     │     └── Windows Server 2019 DC (AD DS, DNS, DHCP)
+  │     ├── ESXi Host 2 (11.0.0.5)
+  │     │     ├── Veeam Backup & Replication
+  │     │     └── Windows 10 Enterprise Client
+  │     └── ESXi Host 3 (11.0.0.8)
+  │           └── Sophos Firewall Appliance
+  │
+  └──► (NIC 3: LAN 2) ── [ Subnet 12.0.0.0/24 ] (GW: 12.0.0.1)
+        └── ESXi Host 4 (12.0.0.12)
+              └── Secondary Routed ESXi Host
+```
 
 
 ### Subnet Allocation & Gateways
