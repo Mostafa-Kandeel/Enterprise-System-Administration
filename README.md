@@ -35,13 +35,14 @@ The entire nested datacenter is hosted on a high-spec physical dedicated server:
 The lab is split into multiple isolated subnets interconnected and secured through a virtual **Sophos Firewall** operating as the core gateway and router.
 
 ```text
-[ Physical Network / Internet ] (Host: 10.100.14.17)
+[ Physical Network / Internet ] (Physical Host: 10.100.14.17)
   │
-  ▼ (NIC 1: WAN / NAT)
-[ Sophos XG Firewall VM ] (Host: 11.0.0.8)
+  ▼ [Port 2: WAN (IP: 11.0.1.128/24)]
+[ Sophos XG Firewall ] (VM on Host 11.0.0.8)
+  │  Web Console: https://11.0.0.15:4444
   │  Core Router • Inter-Subnet Routing • Outbound NAT
   │
-  ├──► (NIC 2: LAN 1) ── [ Subnet 11.0.0.0/24 ] (GW: 11.0.0.1)
+  ├──► [Port 1: LAN (IP: 11.0.0.15)] ── Subnet 11.0.0.0/24
   │     ├── ESXi Host 1 (11.0.0.3)
   │     │     ├── VMware vCenter Server (VCSA)
   │     │     └── Windows Server 2019 DC (AD DS, DNS, DHCP)
@@ -51,7 +52,7 @@ The lab is split into multiple isolated subnets interconnected and secured throu
   │     └── ESXi Host 3 (11.0.0.8)
   │           └── Sophos Firewall Appliance
   │
-  └──► (NIC 3: LAN 2) ── [ Subnet 12.0.0.0/24 ] (GW: 12.0.0.1)
+  └──► [Port 3: LAN (IP: 12.0.0.2)]  ── Subnet 12.0.0.0/24
         └── ESXi Host 4 (12.0.0.12)
               └── Secondary Routed ESXi Host
 ```
@@ -59,11 +60,11 @@ The lab is split into multiple isolated subnets interconnected and secured throu
 
 ### Subnet Allocation & Gateways
 
-| Subnet / Zone | Gateway (Sophos) | Purpose / Workloads |
-| :--- | :--- | :--- |
-| **WAN / Physical** | Bridged / NAT to Host | Outbound Internet connectivity for all subnets via NAT |
-| **Subnet 11.0.0.0/24** | 11.0.0.1 | Core Management, vCenter, DC, Veeam Backup, ESXi Hosts 1, 2, 3 |
-| **Subnet 12.0.0.0/24** | 12.0.0.1 | Production Zone & Routed Member ESXi Host 4 (12.0.0.12) |
+| Interface / Zone | IP Address | Subnet Mask | Gateway Role | Connected Workloads |
+| :--- | :--- | :--- | :--- | :--- |
+| **Port 2 (WAN)** | `11.0.1.128` | `255.255.255.0` | Uplink / NAT | Physical Network & Outbound Internet |
+| **Port 1 (LAN)** | `11.0.0.15` | `255.255.255.0` | Default Gateway (`11.0.0.0/24`) | Core Management, vCenter, DC, Veeam, Hosts 1, 2, 3 |
+| **Port 3 (LAN)** | `12.0.0.2` | `255.255.255.0` | Default Gateway (`12.0.0.0/24`) | Secondary Subnet & ESXi Host 4 (`12.0.0.12`) |
 
 ---
 
@@ -85,14 +86,20 @@ The environment deploys **4 Nested ESXi Hosts** across different subnets:
 ## 🛡️ Core Infrastructure & Security Implementation
 
 ### 1. Sophos Firewall (Routing, NAT & Perimeter Security)
-* **Multi-Homed Architecture (3 vNICs):**
-  - **Port 1 (WAN / NAT):** Provides protected outbound Internet access for both subnets.
-  - **Port 2 (LAN 1 - 11.0.0.0/24):** Default gateway for Management and Core servers.
-  - **Port 3 (LAN 2 - 12.0.0.0/24):** Default gateway for Subnet 12 workloads.
-* **Inter-Subnet Routing:** Enables controlled communication between 11.0.0.0/24 and 12.0.0.0/24.
-* **Security & Inspection:** Firewall access rules, NAT translation, and application-level packet inspection.
 
-![Host 8 - Sophos Firewall](Images/host-8.png)
+The virtual **Sophos XG Firewall** serves as the central router and perimeter security appliance for the entire lab:
+
+* **Configured Network Interfaces:**
+  - **Port 1 (LAN - `11.0.0.15/24`):** Connected to Subnet 11, acting as the primary gateway and hosting the Web Admin Console (`https://11.0.0.15:4444`).
+  - **Port 2 (WAN - `11.0.1.128/24`):** Connected to the physical network with outbound NAT to provide internet connectivity to all internal VMs.
+  - **Port 3 (LAN - `12.0.0.2/24`):** Connected to Subnet 12, serving as the gateway for ESXi Host 4 and its workloads.
+* **Routing & Security Policies:**
+  - **Inter-Subnet Routing:** Enables bidirectional routed traffic between Subnet `11.0.0.0/24` and Subnet `12.0.0.0/24`.
+  - **Perimeter Defense:** Stateful firewall inspection, Layer 7 application rules, and NAT masquerading for WAN egress.
+
+![Sophos Network Interfaces](Images/sophos_interfaces.png)
+
+![Host 8 - Sophos Firewall VM](Images/host-8.png)
 
 ---
 
