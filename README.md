@@ -1,38 +1,42 @@
-# Enterprise System Administration Home Lab
+# Enterprise System Administration & Datacenter Lab
 
-> **A real-world, enterprise-grade nested virtualization lab designed as a practical learning blueprint for System Administrators and IT Infrastructure Engineers.**
-
----
-
-## 🎯 Project Objective & Purpose
-
-This project is built from the perspective of an **Enterprise System Administrator**. The primary objective is to build, configure, and document a complete enterprise IT infrastructure from scratch using **Nested Virtualization**. 
-
-Whether you are starting your journey in the **System Administration track** or looking to master enterprise datacenter design, this lab demonstrates hands-on implementation of:
-- Multi-host nested hypervisors (VMware ESXi & vCenter).
-- Multi-subnet segmentation with a dedicated Next-Generation Firewall (Sophos XG).
-- Enterprise Identity & Directory Services (Windows Server 2019 Active Directory).
-- Centralized Data Protection and Disaster Recovery (Veeam Backup & Replication).
-- End-to-end routing, NAT, and traffic inspection between isolated network zones.
+> **A production-grade, enterprise nested virtualization architecture designed as an end-to-end practical blueprint for System Administrators, Cloud Engineers, and Infrastructure Specialists.**
 
 ---
 
-## 🖥️ Physical Host Specifications (Bare-Metal)
+## 🖥️ Physical Host Specifications (Bare-Metal Platform)
 
-The entire nested datacenter is hosted on a high-spec physical dedicated server:
+The entire enterprise datacenter is deployed on a dedicated, high-performance bare-metal rack server engineered for heavy virtualization workloads:
 
-| Component | Specification |
-| :--- | :--- |
-| **Physical Server IP** | 10.100.14.17 |
-| **Memory (RAM)** | **74 GB** High-Density RAM |
-| **Storage Capacity** | **2 TB** Storage |
-| **Base Hypervisor** | **VMware Workstation Pro** (Enabling Hardware-Assisted Nested Virtualization) |
+| Hardware Component | Enterprise Specification | Operational Role |
+| :--- | :--- | :--- |
+| **Server Hardware Model** | **Dell PowerEdge R740 Rack Server** | High-performance enterprise compute platform |
+| **Management IP** | `10.100.14.17` | Physical out-of-band / host management access |
+| **Physical Memory (RAM)** | **74 GB** DDR4 High-Density ECC RAM | Dedicated allocation for nested hypervisors & VMs |
+| **Storage Capacity** | **3 TB** High-Speed Enterprise Storage | Provisioned for nested datastores and shared pools |
+| **Base Virtualization Engine** | **VMware Workstation Pro** | Hardware-Assisted Nested Virtualization (Intel VT-x/EPT) |
+
+---
+
+## 🏛️ vCenter Cluster & Datacenter Architecture
+
+At the core of the infrastructure is a centralized **VMware vCenter Server Appliance (VCSA)** orchestrating a multi-host environment divided into a High-Availability Enterprise Cluster and an off-cluster Distributed Services Host:
+
+### 🌟 High Availability & Resiliency Features (Hosts 1, 2, 3 Cluster):
+* **vSphere DRS (Distributed Resource Scheduler):** Dynamically monitors CPU and RAM utilization across cluster nodes (`11.0.0.3`, `11.0.0.5`, `11.0.0.8`) and automatically balances workloads via live migration to prevent performance bottlenecks.
+* **Fault Tolerance (FT) & vSphere HA:** Ensures business continuity with zero downtime. If any physical or nested host experiences failure, critical VMs fail over instantly without data loss.
+* **Dedicated vMotion & Migration Network:** Optimized virtual switches and VMkernel interfaces configured specifically for seamless, zero-interruption live VM migration.
+* **Centralized NAS Shared Storage:** Windows Server 2019 functions as a **NAS / Shared Storage Server**, exposing centralized shared datastores to the ESXi cluster. This enables compute-only vMotion migrations without needing to copy heavy virtual disks across hosts.
+
+<p align="center">
+  <img src="Images/Dataenter.jpg" alt="Enterprise Datacenter Overview" width="95%" />
+</p>
 
 ---
 
 ## 🌐 Network Topology & Multi-Subnet Architecture
 
-The lab is split into multiple isolated subnets interconnected and secured through a virtual **Sophos Firewall** operating as the core gateway and router.
+The virtual infrastructure is architected across multiple segregated subnets interconnected and protected by a central **Sophos XG Next-Generation Firewall** serving as the core router and security gateway.
 
 ```text
 [ Physical Network / Internet ] (Physical Host: 10.100.14.17)
@@ -42,112 +46,142 @@ The lab is split into multiple isolated subnets interconnected and secured throu
   │  Web Console: https://11.0.0.15:4444
   │  Core Router • Inter-Subnet Routing • Outbound NAT
   │
-  ├──► [Port 1: LAN (IP: 11.0.0.15)] ── Subnet 11.0.0.0/24
+  ├──► [Port 1: LAN (IP: 11.0.0.15)] ── Subnet 11.0.0.0/24 (HA Cluster Zone)
   │     ├── ESXi Host 1 (11.0.0.3)
-  │     │     ├── VMware vCenter Server (VCSA)
-  │     │     └── Windows Server 2019 DC (AD DS, DNS, DHCP)
+  │     │     ├── VMware vCenter Server Appliance (VCSA)
+  │     │     └── Windows Server 2019 DC & NAS Storage
   │     ├── ESXi Host 2 (11.0.0.5)
-  │     │     ├── Veeam Backup & Replication
-  │     │     └── Windows 10 Enterprise Client
+  │     │     ├── Veeam Backup & Replication Management Server
+  │     │     └── Windows 10 Enterprise Client (Domain-Joined)
   │     └── ESXi Host 3 (11.0.0.8)
-  │           └── Sophos Firewall Appliance
+  │           └── Sophos XG Firewall VM
   │
-  └──► [Port 3: LAN (IP: 12.0.0.2)]  ── Subnet 12.0.0.0/24
+  └──► [Port 3: LAN (IP: 12.0.0.2)]  ── Subnet 12.0.0.0/24 (Distributed Services Zone)
         └── ESXi Host 4 (12.0.0.12)
-              └── Secondary Routed ESXi Host
+              └── Dedicated Veeam Backup Proxy & Repository VM
 ```
 
+### 📋 Sophos Firewall Network Interfaces & Gateway Mapping
 
-### Subnet Allocation & Gateways
-
-| Interface / Zone | IP Address | Subnet Mask | Gateway Role | Connected Workloads |
+| Interface | Zone | IP Address | Subnet Mask | Operational Function |
 | :--- | :--- | :--- | :--- | :--- |
-| **Port 2 (WAN)** | `11.0.1.128` | `255.255.255.0` | Uplink / NAT | Physical Network & Outbound Internet |
-| **Port 1 (LAN)** | `11.0.0.15` | `255.255.255.0` | Default Gateway (`11.0.0.0/24`) | Core Management, vCenter, DC, Veeam, Hosts 1, 2, 3 |
-| **Port 3 (LAN)** | `12.0.0.2` | `255.255.255.0` | Default Gateway (`12.0.0.0/24`) | Secondary Subnet & ESXi Host 4 (`12.0.0.12`) |
+| **Port 2 (WAN)** | WAN | `11.0.1.128` | `255.255.255.0` | Uplink to Physical Network & Outbound Internet via NAT |
+| **Port 1 (LAN)** | LAN | `11.0.0.15` | `255.255.255.0` | Default Gateway for Subnet `11.0.0.0/24` & Admin Web Console |
+| **Port 3 (LAN)** | LAN | `12.0.0.2` | `255.255.255.0` | Default Gateway for Subnet `12.0.0.0/24` (Backup & Secondary Zone) |
+
+<p align="center">
+  <img src="Images/sophos_interfaces.png" alt="Sophos XG Network Interfaces" width="95%" />
+</p>
 
 ---
 
-## 🏢 Cluster & Nested ESXi Hosts Overview
+## 🏢 In-Depth Host Breakdown & Workload Distribution
 
-The environment deploys **4 Nested ESXi Hosts** across different subnets:
-
-| Host Name | ESXi IP | Subnet | Hosted Virtual Machines & Roles |
-| :--- | :--- | :--- | :--- |
-| **ESXi Host 1** | 11.0.0.3 | 11.0.0.0/24 | • **VMware vCenter Server (VCSA)**<br>• **Primary Domain Controller** (Windows Server 2019 - AD DS, DNS, DHCP) |
-| **ESXi Host 2** | 11.0.0.5 | 11.0.0.0/24 | • **Veeam Backup & Replication Server**<br>• **Windows 10 Enterprise Client** (Domain-Joined) |
-| **ESXi Host 3** | 11.0.0.8 | 11.0.0.0/24 | • **Sophos XG Firewall** (Core Router with 3 NICs: WAN, Subnet 11, Subnet 12) |
-| **ESXi Host 4** | 12.0.0.12 | 12.0.0.0/24 | • **Member ESXi Host** in secondary routed subnet |
-
-![Datacenter Overview](Images/Dataenter.jpg)
-
----
-
-## 🛡️ Core Infrastructure & Security Implementation
-
-### 1. Sophos Firewall (Routing, NAT & Perimeter Security)
-
-The virtual **Sophos XG Firewall** serves as the central router and perimeter security appliance for the entire lab:
-
-* **Configured Network Interfaces:**
-  - **Port 1 (LAN - `11.0.0.15/24`):** Connected to Subnet 11, acting as the primary gateway and hosting the Web Admin Console (`https://11.0.0.15:4444`).
-  - **Port 2 (WAN - `11.0.1.128/24`):** Connected to the physical network with outbound NAT to provide internet connectivity to all internal VMs.
-  - **Port 3 (LAN - `12.0.0.2/24`):** Connected to Subnet 12, serving as the gateway for ESXi Host 4 and its workloads.
-* **Routing & Security Policies:**
-  - **Inter-Subnet Routing:** Enables bidirectional routed traffic between Subnet `11.0.0.0/24` and Subnet `12.0.0.0/24`.
-  - **Perimeter Defense:** Stateful firewall inspection, Layer 7 application rules, and NAT masquerading for WAN egress.
-
-![Sophos Network Interfaces](Images/sophos_interfaces.png)
-
-![Host 8 - Sophos Firewall VM](Images/host-8.png)
+### 1️⃣ ESXi Host 1 (`11.0.0.3`) — Management & Enterprise Identity Core
+* **Subnet:** `11.0.0.0/24` (Cluster Member)
+* **Hosted Virtual Machines:**
+  1. **VMware vCenter Server Appliance (VCSA):** Central management plane for the ESXi hosts, cluster features (DRS/HA/FT), virtual networking, and storage provisioning.
+  2. **Windows Server 2019 (Domain Controller & Centralized Management):**
+     * **Active Directory Domain Services (AD DS):** Designed to simulate a real enterprise corporate hierarchy with segregated Organizational Units (OUs), Security Groups, and Group Policy Objects (GPOs) for key departments:
+       - 👥 **HR (Human Resources):** Employee accounts, departmental shares, and privacy GPOs.
+       - 💻 **IT Operations:** Administrative tier accounts, management tools, and elevated rights.
+       - 🎧 **Call Center / Support:** Restricted workstation policies and customer support apps.
+       - 💰 **Finance & Accounting:** High-security financial resources and restricted file access.
+       - 📊 **PMO (Project Management Office):** Cross-functional project access and collaboration.
+     * **Core Network Services:** Windows DNS with forward/reverse lookup zones and DHCP Server.
+     * **NAS / Shared Storage Server:** Configured to share centralized storage volumes via SMB/NFS/iSCSI to the ESXi cluster for live migrations.
 
 ---
 
-### 2. VMware vSphere & vCenter Management
-* Centralized cluster management via **VMware vCenter Server Appliance (VCSA)**.
-* Standard vSwitches and Port Groups segregating VM Traffic, Management, and Kernel interfaces across the hosts.
+### 2️⃣ ESXi Host 2 (`11.0.0.5`) — Central Data Protection & Testing
+* **Subnet:** `11.0.0.0/24` (Cluster Member)
+* **Hosted Virtual Machines:**
+  1. **Veeam Backup & Replication Management Server:** Enterprise backup orchestration handling automated backup jobs, schedules, VM snapshots, and instant recovery.
+  2. **Windows 10 Enterprise Client:** Fully domain-joined test workstation used to validate Group Policy enforcement, department user logins, permissions, and network share access.
 
-| ESXi Host 2 (11.0.0.5) | ESXi Host 4 (12.0.0.12) |
-| :---: | :---: |
-| ![Host 5](Images/host-5.jpg) | ![Host 12](Images/host-12.png) |
-
----
-
-### 3. Identity, Directory & Network Services
-* **Windows Server 2019 Domain Controller:**
-  - Active Directory Domain Services (AD DS) forest and organizational unit (OU) structure.
-  - DNS Server with forward and reverse lookup zones for all cluster hosts and VMs.
-  - DHCP Server configured to distribute leases and options across the domain.
-* **Client Integration:** Windows 10 client joined to the domain for testing GPOs and user privileges.
+<p align="center">
+  <img src="Images/host-5.png" alt="ESXi Host 5 Dashboard" width="95%" />
+</p>
 
 ---
 
-### 4. Data Protection & Disaster Recovery (Veeam)
-* **Veeam Backup & Replication** deployed on Host 2 (11.0.0.5).
-* Integrated directly with vCenter Server to protect VMs across all ESXi hosts.
-* Automated backup jobs, backup repositories, and instant restore validation.
+### 3️⃣ ESXi Host 3 (`11.0.0.8`) — Perimeter Defense & Inter-Subnet Routing
+* **Subnet:** `11.0.0.0/24` (Cluster Member)
+* **Hosted Virtual Machines:**
+  1. **Sophos XG Next-Gen Firewall Appliance:**
+     * Multi-homed with 3 virtual NICs linking WAN, Subnet 11, and Subnet 12.
+     * Functions as the core Layer 3 router enabling bidirectional communication between `11.0.0.0/24` and `12.0.0.0/24`.
+     * Stateful packet inspection, application-level security policies, and NAT masquerading for WAN egress.
 
-![Virtual Machines Inventory](Images/Vms(3).jpg)
-
----
-
-### 5. Storage & Virtual Networking
-* Provisioned local and shared VMFS datastores across the nested hosts.
-* Optimized virtual switches ensuring isolated broadcast domains and security policies.
-
-| Datastores Overview | Virtual Networking |
-| :---: | :---: |
-| ![Datastore](Images/Datastore(3).jpg) | ![Network](Images/Network(3).jpg) |
+<p align="center">
+  <img src="Images/host-8.png" alt="ESXi Host 8 Dashboard" width="95%" />
+</p>
 
 ---
 
-## 🛠️ Skills & Technologies Demonstrated
+### 4️⃣ ESXi Host 4 (`12.0.0.12`) — Distributed Backup Proxy & Repository
+* **Subnet:** `12.0.0.0/24` (Secondary Routed Subnet — Standalone Host)
+* **Hosted Virtual Machines:**
+  1. **Dedicated Veeam Backup Proxy & Backup Repository VM:**
+     * Strategically placed outside the primary cluster on an independent subnet to avoid resource contention with production workloads.
+     * **Load Balancing:** Offloads heavy data processing, deduplication, and compression tasks from the default backup proxy.
+     * **Isolated Repository:** Provides a distributed backup storage target across network boundaries for enhanced disaster recovery readiness.
 
-* **Virtualization:** VMware ESXi 7.x/8.x, VMware vCenter Server (VCSA), VMware Workstation Pro.
-* **Network & Security:** Sophos XG Firewall, Inter-VLAN / Inter-Subnet Routing, NAT, Firewall Rules.
-* **Directory Services:** Active Directory Domain Services (AD DS), Group Policy (GPO), DNS, DHCP.
-* **Operating Systems:** Windows Server 2019, Windows 10 Enterprise.
-* **Backup & Recovery:** Veeam Backup & Replication (VADP, VM snapshot backups, file-level restores).
+<p align="center">
+  <img src="Images/host-12.png" alt="ESXi Host 12 Dashboard" width="95%" />
+</p>
+
+---
+
+## 💾 Centralized Backup & Disaster Recovery (Veeam Engine)
+
+The environment utilizes an enterprise-grade data protection architecture powered by **Veeam Backup & Replication (Enterprise Plus)**:
+
+* **Active Backup Jobs:** Automated image-level, application-consistent VM backups protecting:
+  - `Backup Job-Vcenter`: Full orchestration plane protection.
+  - `Domain-Controller`: Active Directory system state and granular object recovery.
+  - `SQL-Server`: Database-level transaction log and VM protection.
+  - `Win (10) Client`: Workstation state and user data backup.
+  - `Proxy`: Backup infrastructure health and state protection.
+* **Performance Metrics:** Proven throughput with 2.5x deduplication/compression ratio and verified network transfer efficiency.
+
+<p align="center">
+  <img src="Images/veeam_backup_jobs.png" alt="Veeam Backup and Replication Console" width="95%" />
+</p>
+
+---
+
+## 🗄️ Storage & Virtual Networking Infrastructure
+
+### High-Speed Datastores
+* VMFS datastores provisioned across all ESXi nodes, supplemented by the Windows Server 2019 NAS shared storage target.
+* Thin and thick provisioning monitored to optimize storage capacity and VM performance.
+
+<p align="center">
+  <img src="Images/Datastore(3).jpg" alt="Datastore Management" width="95%" />
+</p>
+
+### vSphere Virtual Switches & VM Inventory
+* Custom Port Groups segregating Management traffic, vMotion live migration channels, and VM Production networks.
+* Complete inventory view across nested nodes.
+
+<p align="center">
+  <img src="Images/Network(3).jpg" alt="Virtual Networking" width="48%" />
+  <img src="Images/Vms(3).jpg" alt="Virtual Machine Inventory" width="48%" />
+</p>
+
+---
+
+## 🛠️ Summary of Implemented Technologies & Competencies
+
+| Domain | Implemented Technologies & Concepts |
+| :--- | :--- |
+| **Virtualization Platforms** | VMware ESXi 7.x/8.x, VMware vCenter Server (VCSA), VMware Workstation Pro |
+| **High Availability & Clustering** | VMware DRS (Distributed Resource Scheduler), vSphere HA, Fault Tolerance (FT), vMotion |
+| **Network & Perimeter Security** | Sophos XG Firewall, Inter-Subnet / Inter-VLAN Routing, NAT Masquerading, Stateful Packet Inspection |
+| **Identity & Access Management** | Microsoft Windows Server 2019 AD DS, Departmental OUs (HR, IT, Call Center, Finance, PMO), Group Policy (GPOs), DNS, DHCP |
+| **Storage Architecture** | VMFS Datastores, Windows Server 2019 NAS / Shared Storage for Compute-Only vMotion Migration |
+| **Backup & Disaster Recovery** | Veeam Backup & Replication (Enterprise Plus), Distributed Backup Proxies, Secondary Subnet Repository, Granular Item Recovery |
 
 ---
 
