@@ -56,6 +56,13 @@ At the core of the infrastructure is a centralized **VMware vCenter Server Appli
 
 The virtual infrastructure is architected across multiple segregated subnets interconnected and protected by a central **Sophos XG Next-Generation Firewall** serving as the core router and security gateway.
 
+<p align="center">
+  <img src="Images/network_topology_diagram.png" alt="Enterprise Network Topology Architecture Diagram" width="100%" />
+</p>
+
+<details>
+  <summary><b>🔍 Click to view Text-Based Topology Blueprint</b></summary>
+
 ```text
 +--------------------------------------------------------------------+
 |                   PHYSICAL INFRASTRUCTURE LAYER                    |
@@ -101,6 +108,8 @@ The virtual infrastructure is architected across multiple segregated subnets int
       └── Sophos XG Firewall VM
 +--------------------------------------------------------------------+
 ```
+
+</details>
 
 ### 📋 Sophos Firewall Network Interfaces & Gateway Mapping
 
