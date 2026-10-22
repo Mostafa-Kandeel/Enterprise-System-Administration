@@ -4,6 +4,24 @@
 
 ---
 
+---
+
+## 🎯 Project Overview & Core Objectives
+
+### 💡 The Project Concept (فكرة المشروع)
+In enterprise IT, mastering production-grade datacenter operations requires practical experience with multi-node hypervisors, clustering, perimeter security, directory services, and disaster recovery. However, obtaining multiple dedicated physical servers and enterprise licensing for testing is often cost-prohibitive.
+
+This project solves that barrier by architecting a **Complete Enterprise Datacenter inside a Nested Virtualization Environment** hosted on a high-spec bare-metal server (**Dell PowerEdge R740** with **74 GB RAM** and **3 TB Storage**). By leveraging nested VMware ESXi hypervisors on VMware Workstation, this environment replicates a genuine, multi-tier corporate infrastructure—delivering real-world enterprise capabilities without hardware limitations.
+
+### 🚀 Strategic Objectives (أهداف المشروع)
+* **Practical Blueprint for System Administrators:** Built as an end-to-end, real-world reference for anyone studying or advancing in the **System Administration & Cloud Infrastructure track**, demonstrating how enterprise components tie together.
+* **Realistic Corporate Simulation:** Models a real enterprise organization with 5 dedicated business departments (**HR, IT Operations, Call Center, Finance, and PMO**), implementing strict security boundaries, Active Directory Organizational Units (OUs), Group Policies (GPOs), and role-based access control.
+* **Mastering High Availability & Clustering:** Hands-on implementation of enterprise availability standards: **vSphere DRS** for automatic workload balancing, **Fault Tolerance (FT)** & **vSphere HA** for zero-downtime protection, and **vMotion** live migration enabled by centralized **NAS Shared Storage**.
+* **Zero-Trust Network Segmentation:** Practical implementation of multi-subnet isolation, Layer 7 firewall policies, and inter-subnet routing via a dedicated **Sophos XG Firewall**.
+* **Enterprise Data Protection & Disaster Recovery:** Implementing a production-grade 3-tier backup architecture with **Veeam Backup & Replication**, including off-cluster distributed proxy load balancing.
+
+---
+
 ## 🖥️ Physical Host Specifications (Bare-Metal Platform)
 
 The entire enterprise datacenter is deployed on a dedicated, high-performance bare-metal rack server engineered for heavy virtualization workloads:
@@ -39,26 +57,49 @@ At the core of the infrastructure is a centralized **VMware vCenter Server Appli
 The virtual infrastructure is architected across multiple segregated subnets interconnected and protected by a central **Sophos XG Next-Generation Firewall** serving as the core router and security gateway.
 
 ```text
-[ Physical Network / Internet ] (Physical Host: 10.100.14.17)
-  │
-  ▼ [Port 2: WAN (IP: 11.0.1.128/24)]
-[ Sophos XG Firewall ] (VM on Host 11.0.0.8)
-  │  Web Console: https://11.0.0.15:4444
-  │  Core Router • Inter-Subnet Routing • Outbound NAT
-  │
-  ├──► [Port 1: LAN (IP: 11.0.0.15)] ── Subnet 11.0.0.0/24 (HA Cluster Zone)
-  │     ├── ESXi Host 1 (11.0.0.3)
-  │     │     ├── VMware vCenter Server Appliance (VCSA)
-  │     │     └── Windows Server 2019 DC & NAS Storage
-  │     ├── ESXi Host 2 (11.0.0.5)
-  │     │     ├── Veeam Backup & Replication Management Server
-  │     │     └── Windows 10 Enterprise Client (Domain-Joined)
-  │     └── ESXi Host 3 (11.0.0.8)
-  │           └── Sophos XG Firewall VM
-  │
-  └──► [Port 3: LAN (IP: 12.0.0.2)]  ── Subnet 12.0.0.0/24 (Distributed Services Zone)
-        └── ESXi Host 4 (12.0.0.12)
-              └── Dedicated Veeam Backup Proxy & Repository VM
++--------------------------------------------------------------------+
+|                   PHYSICAL INFRASTRUCTURE LAYER                    |
++--------------------------------------------------------------------+
+ [ Dell PowerEdge R740 ]  ── Physical Host IP: 10.100.14.17
+   └── VMware Workstation Pro (Nested Virtualization: 74GB RAM / 3TB)
+                                 │
+                                 ▼ (Uplink / NAT)
++--------------------------------------------------------------------+
+|             PERIMETER SECURITY & INTER-SUBNET ROUTING              |
++--------------------------------------------------------------------+
+ [ Sophos XG Firewall VM ] (Hosted on ESXi Host 3: 11.0.0.8)
+   • Web Admin Console: https://11.0.0.15:4444
+   • Port 2 (WAN): 11.0.1.128/24 ── Outbound NAT & Internet Egress
+   • Port 1 (LAN): 11.0.0.15/24  ── Core Gateway for Subnet 11
+   • Port 3 (LAN): 12.0.0.2/24   ── Core Gateway for Subnet 12
+        │                                         │
+        │ [Port 1: LAN]                           │ [Port 3: LAN]
+        ▼                                         ▼
++---------------------------------+   +------------------------------+
+| SUBNET 11.0.0.0/24 (HA CLUSTER) |   | SUBNET 12.0.0.0/24 (SERVICES)|
++---------------------------------+   +------------------------------+
+ Gateway IP: 11.0.0.15                 Gateway IP: 12.0.0.2
+ ├── High Availability (vSphere HA)    └── Standalone Routed ESXi Host
+ ├── Auto Load-Balancing (DRS)
+ ├── Continuous Uptime (FT)
+ ├── Dedicated vMotion Network
+ └── Shared Storage: Win2019 NAS
+ │
+ ├── [ESXi Host 1] 11.0.0.3            └── [ESXi Host 4] 12.0.0.12
+ │    ├── VMware vCenter (VCSA)             ├── Veeam Backup Proxy VM
+ │    └── Windows Server 2019 DC            └── Backup Repository Target
+ │         • Domain Controller                   • Offloads Backup Load
+ │         • NAS Shared Storage                  • Cross-Subnet DR
+ │         • OUs: HR, IT, Support,
+ │                Finance, PMO
+ │
+ ├── [ESXi Host 2] 11.0.0.5
+ │    ├── Veeam Backup & Replication
+ │    └── Windows 10 Client (Testing)
+ │
+ └── [ESXi Host 3] 11.0.0.8
+      └── Sophos XG Firewall VM
++--------------------------------------------------------------------+
 ```
 
 ### 📋 Sophos Firewall Network Interfaces & Gateway Mapping
